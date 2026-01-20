@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bionic Trip Planner | Secure</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&family=Inter:wght@300;400;600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* --- THEME VARIABLES --- */
+        :root[data-theme="dark"] {
+            --bg-color: #050505;
+            --glass-bg: rgba(20, 20, 35, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-main: #ffffff;
+            --text-muted: rgba(255, 255, 255, 0.6);
+            --neon-primary: #00f3ff;
+            --neon-secondary: #bc13fe;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-color);
+            color: var(--text-main);
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+        }
+
+        .liquid-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            background: radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0));
+            filter: blur(60px);
+        }
+
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.6;
+            animation: floatOrb 20s infinite linear;
+        }
+
+        .orb-1 {
+            width: 50vw;
+            height: 50vw;
+            background: var(--neon-secondary);
+            top: -10%;
+            left: -10%;
+        }
+
+        .orb-2 {
+            width: 40vw;
+            height: 40vw;
+            background: var(--neon-primary);
+            bottom: -10%;
+            right: -10%;
+        }
+
+        @keyframes floatOrb {
+            0% {
+                transform: translate(0, 0) rotate(0deg);
+            }
+
+            100% {
+                transform: translate(50px, 50px) rotate(360deg);
+            }
+        }
+
+        /* Sidebar & Main (Same as before) */
+        .sidebar {
+            width: 280px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(25px);
+            border-right: 1px solid var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            padding: 30px 0;
+            z-index: 10;
+        }
+
+        .logo {
+            padding: 0 30px 40px;
+            font-family: 'Orbitron';
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--text-main);
+            text-shadow: 0 0 20px var(--neon-primary);
+        }
+
+        .menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .menu li {
+            padding: 16px 30px;
+            cursor: pointer;
+            color: var(--text-muted);
+            font-size: 14px;
+            font-weight: 500;
+            border-left: 3px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .menu li:hover,
+        .menu li.active {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.05);
+            border-left-color: var(--neon-primary);
+        }
+
+        .main {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        /* Glass Card Utils */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+
+        .big-number {
+            font-family: 'Orbitron';
+            font-size: 42px;
+            font-weight: 700;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        input,
+        button,
+        select {
+            width: 100%;
+            padding: 12px;
+            margin-top: 5px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            color: white;
+            box-sizing: border-box;
+        }
+
+        .btn-glass {
+            background: linear-gradient(135deg, var(--neon-primary), var(--neon-secondary));
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+
+        /* --- NEW AUTH SCREEN STYLES --- */
+        #auth-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #050505;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .auth-box {
+            width: 400px;
+            padding: 40px;
+            background: rgba(20, 20, 35, 0.8);
+            backdrop-filter: blur(30px);
+            border: 1px solid var(--neon-primary);
+            border-radius: 20px;
+            box-shadow: 0 0 50px rgba(0, 243, 255, 0.2);
+            text-align: center;
+        }
+
+        .auth-box h2 {
+            font-family: 'Orbitron';
+            color: var(--neon-primary);
+            margin-bottom: 30px;
+        }
+
+        .auth-switch {
+            margin-top: 20px;
+            font-size: 12px;
+            color: var(--text-muted);
+            cursor: pointer;
+        }
+
+        .auth-switch:hover {
+            color: var(--neon-primary);
+            text-decoration: underline;
+        }
+
+        .error-msg {
+            color: #ff4d4d;
+            font-size: 12px;
+            margin-top: 10px;
+            min-height: 15px;
+        }
+
+        :root[data-theme="dark"] {
+            --bg-color: #050505;
+            --glass-bg: rgba(20, 20, 35, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-main: #ffffff;
+            --text-muted: rgba(255, 255, 255, 0.6);
+            --neon-primary: #00f3ff;
+            --neon-secondary: #bc13fe;
+            --orb-opacity: 0.6;
+            --card-hover: rgba(255, 255, 255, 0.05);
+        }
+
+        :root[data-theme="light"] {
+            --bg-color: #e0e5ec;
+            --glass-bg: rgba(255, 255, 255, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.4);
+            --text-main: #1a1a1a;
+            --text-muted: rgba(0, 0, 0, 0.6);
+            --neon-primary: #007aff;
+            /* Apple Blue */
+            --neon-secondary: #5856d6;
+            /* Purple */
+            --orb-opacity: 0.25;
+            --card-hover: rgba(255, 255, 255, 0.8);
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-color);
+            color: var(--text-main);
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            transition: background 0.5s ease;
+        }
+
+        /* --- LIQUID BACKGROUND --- */
+        .liquid-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            /* Dynamic gradient based on theme */
+            background: radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0));
+            filter: blur(60px);
+        }
+
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: var(--orb-opacity);
+            transition: opacity 0.5s ease;
+            animation: floatOrb 20s infinite linear;
+        }
+
+        .orb-1 {
+            width: 50vw;
+            height: 50vw;
+            background: var(--neon-secondary);
+            top: -10%;
+            left: -10%;
+            animation-duration: 25s;
+        }
+
+        .orb-2 {
+            width: 40vw;
+            height: 40vw;
+            background: var(--neon-primary);
+            bottom: -10%;
+            right: -10%;
+            animation-duration: 30s;
+            animation-direction: reverse;
+        }
+
+        @keyframes floatOrb {
+            0% {
+                transform: translate(0, 0) rotate(0deg);
+            }
+
+            100% {
+                transform: translate(50px, 50px) rotate(360deg);
+            }
+        }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            width: 280px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border-right: 1px solid var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            padding: 30px 0;
+            z-index: 10;
+        }
+
+        .logo {
+            padding: 0 30px 40px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            color: var(--text-main);
+            text-shadow: 0 0 20px var(--neon-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .menu li {
+            padding: 16px 30px;
+            cursor: pointer;
+            transition: 0.3s;
+            color: var(--text-muted);
+            font-size: 14px;
+            font-weight: 500;
+            border-left: 3px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .menu li:hover {
+            color: var(--text-main);
+            background: var(--card-hover);
+            padding-left: 35px;
+        }
+
+        .menu li.active {
+            color: var(--text-main);
+            background: linear-gradient(90deg, rgba(0, 243, 255, 0.1), transparent);
+            border-left-color: var(--neon-primary);
+        }
+
+        /* --- MAIN AREA --- */
+        .main {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .header-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 30px;
+            color: var(--text-main);
+        }
+
+        /* --- GLASS COMPONENTS --- */
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+            transition: 0.3s;
+            margin-bottom: 20px;
+        }
+
+        /* --- PROFILE CARD (NEW) --- */
+        .profile-card {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            cursor: pointer;
+            border: 1px solid var(--neon-primary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .profile-card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
+        }
+
+        .profile-pic {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #333, #666);
+            object-fit: cover;
+            border: 2px solid var(--text-main);
+        }
+
+        .profile-info h3 {
+            margin: 0;
+            font-size: 18px;
+            color: var(--text-main);
+        }
+
+        .profile-info p {
+            margin: 5px 0 0;
+            font-size: 12px;
+            color: var(--neon-primary);
+        }
+
+        .edit-icon {
+            margin-left: auto;
+            color: var(--text-muted);
+        }
+
+        /* --- SETTINGS ROWS --- */
+        .settings-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .settings-row:last-child {
+            border-bottom: none;
+        }
+
+        .row-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-main);
+        }
+
+        /* --- TOGGLE SWITCH --- */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 26px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 34px;
+            transition: .4s;
+            border: 1px solid var(--glass-border);
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 2px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: var(--neon-primary);
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(24px);
+        }
+
+        /* --- BUTTONS --- */
+        .btn-action {
+            background: transparent;
+            border: 1px solid var(--glass-border);
+            color: var(--text-main);
+            padding: 8px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-action:hover {
+            background: var(--glass-border);
+        }
+
+        .btn-glass {
+            width: 100%;
+            padding: 15px;
+            margin-top: 10px;
+            background: linear-gradient(135deg, var(--neon-primary), var(--neon-secondary));
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-danger {
+            width: 100%;
+            padding: 15px;
+            margin-top: 10px;
+            background: rgba(255, 0, 0, 0.1);
+            border: 1px solid red;
+            border-radius: 12px;
+            color: red;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-danger:hover {
+            background: rgba(255, 0, 0, 0.3);
+        }
+
+        /* --- INPUTS --- */
+        input[type="text"],
+        input[type="email"],
+        input[type="password"],
+        input[type="number"],
+        input[type="date"],
+        select {
+            width: 100%;
+            padding: 12px;
+            margin-top: 5px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            color: var(--text-main);
+            outline: none;
+            box-sizing: border-box;
+        }
+
+        /* --- UTILS --- */
+        .hidden {
+            display: none !important;
+        }
+
+        .text-neon {
+            color: var(--neon-primary);
+        }
+
+        /* Dashboard Charts */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .kpi-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .big-number {
+            font-family: 'Orbitron';
+            font-size: 42px;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .card-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="liquid-bg">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+    </div>
+
+    <div id="auth-screen">
+        <div class="auth-box">
+            <h2 id="auth-title">SYSTEM ACCESS</h2>
+
+            <div id="login-form">
+                <input type="email" id="login-email" placeholder="Identifier (Email)">
+                <input type="password" id="login-pass" placeholder="Access Code (Password)">
+                <button class="btn-glass" onclick="login()">Initialize Session</button>
+                <div class="error-msg" id="login-error"></div>
+                <div class="auth-switch" onclick="toggleAuthMode()">New User? Create Protocol ID</div>
+            </div>
+
+            <div id="register-form" class="hidden">
+                <input type="text" id="reg-name" placeholder="Operator Name">
+                <input type="email" id="reg-email" placeholder="Email Address">
+                <input type="password" id="reg-pass" placeholder="Set Password">
+                <button class="btn-glass" onclick="register()">Create Identity</button>
+                <div class="error-msg" id="reg-error"></div>
+                <div class="auth-switch" onclick="toggleAuthMode()">Back to Login</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="app-container" class="hidden" style="display: flex; width: 100%; height: 100%;">
+
+        <div class="sidebar">
+            <div class="logo"><i class="fas fa-biohazard"></i> BIONIC</div>
+            <ul class="menu">
+                <li onclick="switchTab('dashboard')" class="active"><i class="fas fa-chart-pie"></i> Dashboard</li>
+                <li onclick="switchTab('expenses')"><i class="fas fa-bolt"></i> Expenses</li>
+                <li onclick="switchTab('config')" style="margin-top: auto;"><i class="fas fa-sliders-h"></i> Config</li>
+            </ul>
+        </div>
+
+        <div class="main">
+            <div id="view-dashboard">
+                <h2 style="font-family:'Orbitron'">Mission Dashboard</h2>
+                <div class="glass-card">
+                    <h3>Budget Overview</h3>
+                    <div style="display:flex; justify-content:space-between; margin-top:20px;">
+                        <div>
+                            <div style="font-size:10px;">TOTAL</div>
+                            <div class="big-number" id="total-budget">0</div>
+                        </div>
+                        <div>
+                            <div style="font-size:10px;">USED</div>
+                            <div class="big-number" id="total-expenses">0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-config" class="hidden">
+                <h2 style="font-family:'Orbitron'">Configuration</h2>
+                <div class="glass-card">
+                    <h3 id="user-display-name">User Profile</h3>
+                    <p id="user-display-email" style="color:var(--text-muted); font-size:12px; margin-bottom:20px;">...
+                    </p>
+                    <button class="btn-glass" style="background: rgba(255,0,0,0.2); border:1px solid red; color:red;"
+                        onclick="logout()">Terminate Session (Log Out)</button>
+                </div>
+            </div>
+
+            <div id="view-expenses" class="hidden">
+                <h2>Add Transaction</h2>
+                <div class="glass-card">
+                    <input type="text" id="exp-desc" placeholder="Desc">
+                    <input type="number" id="exp-amount" placeholder="Amount">
+                    <button class="btn-glass" onclick="addExpense()">Add</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let token = localStorage.getItem('token');
+        let currentUser = null;
+        let currentTrip = null;
+
+        // --- AUTH LOGIC ---
+
+        // Check session on load
+        if (token) {
+            initApp();
+        }
+
+        function toggleAuthMode() {
+            document.getElementById('login-form').classList.toggle('hidden');
+            document.getElementById('register-form').classList.toggle('hidden');
+            document.getElementById('auth-title').innerText = document.getElementById('login-form').classList.contains('hidden') ? 'NEW IDENTITY' : 'SYSTEM ACCESS';
+        }
+
+        async function login() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-pass').value;
+
+            const res = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                localStorage.setItem('token', data.token);
+                token = data.token;
+                initApp();
+            } else {
+                document.getElementById('login-error').innerText = "ACCESS DENIED: " + data.msg;
+            }
+        }
+
+        async function register() {
+            const username = document.getElementById('reg-name').value;
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-pass').value;
+
+            const res = await fetch('/api/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, email, password })
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                localStorage.setItem('token', data.token);
+                token = data.token;
+                initApp();
+            } else {
+                document.getElementById('reg-error').innerText = "ERROR: " + (data.msg || "Invalid Data");
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            location.reload(); // Forces reload, which checks token -> null -> shows Login
+        }
+
+        // --- APP LOGIC ---
+
+        async function initApp() {
+            // Hide Auth, Show App
+            document.getElementById('auth-screen').style.display = 'none';
+            document.getElementById('app-container').classList.remove('hidden');
+            document.getElementById('app-container').style.display = 'flex';
+
+            // Fetch User Details
+            const userRes = await fetch('/api/auth/user', { headers: { 'Authorization': token } });
+            if (userRes.ok) {
+                currentUser = await userRes.json();
+                document.getElementById('user-display-name').innerText = currentUser.username;
+                document.getElementById('user-display-email').innerText = currentUser.email;
+            } else {
+                logout(); // Token expired or invalid
+            }
+
+            loadData();
+        }
+
+        async function loadData() {
+            // Fetch Trips (Protected Route)
+            const res = await fetch('/api/trips', { headers: { 'Authorization': token } });
+            const trips = await res.json();
+
+            if (trips.length > 0) {
+                currentTrip = trips[trips.length - 1];
+                const total = currentTrip.budget;
+                const used = currentTrip.expenses.reduce((a, b) => a + b.amount, 0);
+
+                document.getElementById('total-budget').innerText = total.toLocaleString();
+                document.getElementById('total-expenses').innerText = used.toLocaleString();
+            }
+        }
+
+        // Navigation Logic
+        function switchTab(view) {
+            document.querySelectorAll('.main > div').forEach(d => d.classList.add('hidden'));
+            document.getElementById('view-' + view).classList.remove('hidden');
+        }
+
+        // Add Expense Logic (Example)
+        async function addExpense() {
+            if (!currentTrip) return alert("Create a trip first!");
+            const desc = document.getElementById('exp-desc').value;
+            const amount = document.getElementById('exp-amount').value;
+
+            await fetch(`/api/trips/${currentTrip._id}/expenses`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': token
+                },
+                body: JSON.stringify({ description: desc, amount, category: 'Other' })
+            });
+            alert("Saved");
+            loadData();
+        }
+
+    </script>
+</body>
+
+</html>
