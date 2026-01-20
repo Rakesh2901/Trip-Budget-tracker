@@ -7,6 +7,39 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('./models/User');
 const Trip = require('./models/Trip');
+const multer = require('multer');
+const fs = require('fs');
+
+// --- FILE UPLOAD CONFIGURATION ---
+// Ensure the uploads directory exists
+const uploadDir = path.join(__dirname, 'public/uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Configure storage
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    // Create a unique filename: user-id-timestamp.ext
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'avatar-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // Limit to 5MB
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only images are allowed'));
+    }
+  }
+});
 
 const app = express();
 const JWT_SECRET = 'super_secret_bionic_key_change_this_in_prod'; // Security Key
@@ -104,6 +137,27 @@ app.get('/api/auth/user', auth, async (req, res) => {
     res.status(500).send('Server Error');
   }
 });
+// 4. Upload Profile Picture
+app.post('/api/user/avatar', auth, upload.single('avatar'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ msg: 'No file uploaded' });
+    }
+
+    const user = await User.findById(req.user.user.id);
+    if (!user) return res.status(404).json({ msg: 'User not found' });
+
+    // Save the relative path to the database
+    // Note: We serve 'public' statically, so /uploads/filename works
+    user.profilePicture = '/uploads/' + req.file.filename;
+    await user.save();
+
+    res.json({ profilePicture: user.profilePicture });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server Error');
+  }
+});
 
 // --- TRIP ROUTES (PROTECTED) ---
 
@@ -155,3 +209,5 @@ app.post('/api/trips/:id/expenses', auth, async (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Bionic Server running on port ${PORT}`));
+
+// --- END OF FILE ---

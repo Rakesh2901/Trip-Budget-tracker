@@ -14,6 +14,8 @@ const UserSchema = new mongoose.Schema({
     }
   },
   password: { type: String, required: true },
+  // Add this new field
+  profilePicture: { type: String, default: '' },
   createdAt: { type: Date, default: Date.now }
 });
 

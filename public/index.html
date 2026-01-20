@@ -426,10 +426,24 @@
                 <div class="glass-card">
                     <h3 style="margin-top:0;">Current User</h3>
                     <div style="display:flex; align-items:center; gap:15px; margin-bottom: 20px;">
-                        <div
-                            style="width:50px; height:50px; background:#334155; border-radius:50%; display:flex; align-items:center; justify-content:center;">
-                            <i class="fas fa-user" style="color:white;"></i>
+
+                        <div style="position: relative; width: 60px; height: 60px;">
+                            <img id="user-avatar-img" src="" alt="Profile"
+                                style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: none; border: 2px solid var(--accent-primary);">
+
+                            <div id="user-avatar-placeholder"
+                                style="width: 100%; height: 100%; background:#334155; border-radius:50%; display:flex; align-items:center; justify-content:center;">
+                                <i class="fas fa-user" style="color:white; font-size: 24px;"></i>
+                            </div>
+
+                            <label for="avatar-input"
+                                style="position: absolute; bottom: 0; right: 0; background: var(--accent-primary); border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.5);">
+                                <i class="fas fa-camera" style="font-size: 12px; color: #0f172a;"></i>
+                            </label>
+                            <input type="file" id="avatar-input" style="display: none;" accept="image/*"
+                                onchange="uploadAvatar()">
                         </div>
+
                         <div>
                             <div style="font-weight:600;" id="user-name">Loading...</div>
                             <div style="font-size:13px; color:var(--text-muted);" id="user-email">...</div>
@@ -569,6 +583,9 @@
                 const user = await userRes.json();
                 document.getElementById('user-name').innerText = user.username;
                 document.getElementById('user-email').innerText = user.email;
+
+                // NEW: Update Avatar UI
+                updateAvatarUI(user.profilePicture);
             } else {
                 logout();
             }
@@ -674,6 +691,55 @@
                     }
                 }
             });
+        }
+        // --- NEW FUNCTIONS FOR AVATAR ---
+
+        async function uploadAvatar() {
+            const fileInput = document.getElementById('avatar-input');
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('avatar', file);
+
+            // Show loading state (optional)
+            document.getElementById('user-avatar-placeholder').innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+            try {
+                const res = await fetch('/api/user/avatar', {
+                    method: 'POST',
+                    headers: { 'Authorization': token },
+                    body: formData
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    updateAvatarUI(data.profilePicture);
+                } else {
+                    alert('Failed to upload image');
+                    // Reset placeholder
+                    document.getElementById('user-avatar-placeholder').innerHTML = '<i class="fas fa-user" style="color:white; font-size: 24px;"></i>';
+                }
+            } catch (error) {
+                console.error(error);
+                alert('Error uploading image');
+            }
+        }
+
+        function updateAvatarUI(url) {
+            const img = document.getElementById('user-avatar-img');
+            const placeholder = document.getElementById('user-avatar-placeholder');
+
+            if (url) {
+                img.src = url;
+                img.style.display = 'block';
+                placeholder.style.display = 'none';
+            } else {
+                img.style.display = 'none';
+                placeholder.style.display = 'flex';
+                // Ensure icon is correct in case it was spinning
+                placeholder.innerHTML = '<i class="fas fa-user" style="color:white; font-size: 24px;"></i>';
+            }
         }
     </script>
 </body>
